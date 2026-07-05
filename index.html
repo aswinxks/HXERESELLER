@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HYPERSENSEINDIA — RESELLER PORTAL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #00ff66;
+      --bg: #050505;
+      --card: #0c0c0c;
+      --border: #1a1a1a;
+      --text: #e0e0e0;
+      --danger: #ff3333;
+      --warning: #ffaa00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    .neon-text { text-shadow: 0 0 10px var(--primary); }
+    .hidden { display: none !important; }
+
+    #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .glass-box { background: var(--card); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 0 30px rgba(0,255,102,0.1); text-align: center; }
+    .branding h1 { font-family: 'Orbitron', sans-serif; color: var(--primary); font-size: 24px; margin-bottom: 30px; letter-spacing: 2px; }
+
+    .form-group { text-align: left; margin-bottom: 20px; }
+    label { font-size: 11px; text-transform: uppercase; color: #888; display: block; margin-bottom: 8px; }
+    .input { width: 100%; background: #111; border: 1px solid var(--border); padding: 12px; color: #fff; border-radius: 8px; outline: none; transition: 0.3s; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; background: var(--primary); color: #000; font-family: 'Orbitron', sans-serif; transition: 0.3s; }
+
+    #dashboard { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: #080808; border-right: 1px solid var(--border); padding: 40px 20px; position: fixed; height: 100vh; }
+    .main { margin-left: 260px; flex: 1; padding: 50px; overflow-y: auto; }
+
+    .countdown-card { background: linear-gradient(135deg, #0a0a0a, #111); border: 1px solid var(--border); padding: 30px; border-radius: 20px; text-align: center; margin-bottom: 40px; position: relative; overflow: hidden; }
+    .countdown-card::after { content: ''; position: absolute; bottom: 0; left: 0; height: 4px; background: var(--primary); width: var(--progress, 100%); transition: 0.5s; }
+    .countdown-card h3 { font-family: 'Orbitron'; font-size: 48px; color: var(--primary); margin: 10px 0; }
+    .countdown-card p { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 15px; overflow: hidden; }
+    th { text-align: left; padding: 15px 20px; background: #111; color: #888; font-size: 11px; text-transform: uppercase; }
+    td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--card); border: 1px solid var(--border); padding: 35px; border-radius: 20px; width: 400px; }
+
+    .duration-btn { flex: 1; font-size: 10px !important; padding: 8px !important; margin-top: 0 !important; }
+    .duration-btn.active { background: var(--primary) !important; color: #000 !important; }
+    .duration-btn.inactive { background: #111 !important; color: #444 !important; border: 1px solid var(--border) !important; }
+
+    footer { position: absolute; bottom: 30px; left: 20px; right: 20px; text-align: center; font-size: 10px; color: #444; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="glass-box">
+    <div class="branding"><h1>HXE RESELLER ACCESS</h1></div>
+    <div class="form-group"><label for="resID">Reseller ID</label><input type="text" id="resID" class="input" placeholder="ID" /></div>
+    <div class="form-group"><label for="resKey">Portal Key</label><input type="password" id="resKey" class="input" placeholder="KEY" /></div>
+    <button class="btn" onclick="login()">AUTHORIZE PORTAL</button>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+  <nav class="sidebar">
+    <div class="branding" style="margin-bottom:50px;">
+      <h2 style="color:var(--primary); font-size:18px; font-family:'Orbitron';">HYPERSENSE</h2>
+      <p>RESELLER PORTAL</p>
+    </div>
+    <p style="font-size:11px; color:#444; margin-bottom:10px;">AUTHORIZED AGENT</p>
+    <div id="display-name" style="font-weight:600; color:#fff; margin-bottom:30px;">-</div>
+    <button class="btn" onclick="location.reload()" style="background:transparent; color:var(--danger); border:1px solid var(--danger);">DISCONNECT</button>
+    <footer>DEV: AG HYDRAX FF</footer>
+  </nav>
+
+  <main class="main">
+    <div class="countdown-card">
+      <p>Total License Pool Remaining</p>
+      <h3 id="stat-avail">0</h3>
+      <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:10px;">
+        <span id="stat-used">Used: 0</span>
+        <span id="stat-limit">Limit: 0</span>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="font-family:'Orbitron';">Client Registry</h2>
+      <button class="btn" style="width:auto; padding:10px 20px;" onclick="openAddModal()">＋ ISSUE NEW KEY</button>
+    </div>
+
+    <table>
+      <thead><tr><th>License</th><th>User/Pass</th><th>Note</th><th>Status</th><th>Security</th></tr></thead>
+      <tbody id="user-table"></tbody>
+    </table>
+  </main>
+</div>
+
+<div class="modal" id="addModal">
+  <div class="modal-content">
+    <h3 style="font-family:'Orbitron'; margin-bottom:20px;">Issue License</h3>
+    <div class="form-group"><label for="new-user">Username</label><input type="text" id="new-user" class="input" /></div>
+    <div class="form-group"><label for="new-pass">Password</label><input type="text" id="new-pass" class="input" /></div>
+    <div class="form-group">
+      <label>Duration Toggle</label>
+      <div style="display:flex; gap:8px;">
+        <button id="dur-1" class="btn duration-btn active" onclick="setDur(1)">1 DAY</button>
+        <button id="dur-7" class="btn duration-btn inactive" onclick="setDur(7)">7 DAYS</button>
+        <button id="dur-30" class="btn duration-btn inactive" onclick="setDur(30)">30 DAYS</button>
+      </div>
+    </div>
+    <div class="form-group"><label for="new-note">Client Note</label><input type="text" id="new-note" class="input" /></div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn" style="background:#222; color:#fff;" onclick="closeModal()">CANCEL</button>
+      <button class="btn" onclick="saveUser()">CONFIRM ISSUE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let db = null, currentReseller = null, myLimit = 0, myUsed = 0, selectedDur = 1;
+
+function setDur(d) {
+    selectedDur = d;
+    [1, 7, 30].forEach(v => {
+        const el = document.getElementById('dur-' + v);
+        el.className = 'btn duration-btn ' + (v === d ? 'active' : 'inactive');
+    });
+}
+
+async function login() {
+    const id = document.getElementById('resID').value.trim();
+    const key = document.getElementById('resKey').value.trim();
+
+    let cfg = JSON.parse(localStorage.getItem('hsx_v2_config'));
+    if(!cfg) {
+        cfg = {
+            apiKey: "AIzaSyA9XvKWcmD7WsNtQqxrH48qIfGmiPavp3M",
+            databaseURL: "https://hxe-framework-default-rtdb.firebaseio.com",
+            projectId: "hxe-framework"
+        };
+        localStorage.setItem('hsx_v2_config', JSON.stringify(cfg));
+    }
+
+    if(firebase.apps.length === 0) firebase.initializeApp(cfg);
+    db = firebase.database();
+
+    db.ref('resellers/' + id).once('value', s => {
+        const r = s.val();
+        if(r && r.access_key === key && r.status === 'ACTIVE') {
+            currentReseller = id; myLimit = r.key_limit || 0;
+            document.getElementById('display-name').innerText = r.name;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadData();
+        } else alert("Authorization Failed");
+    });
+}
+
+function loadData() {
+    db.ref('users').on('value', s => {
+        const all = s.val() || {};
+        const tbody = document.getElementById('user-table');
+        tbody.innerHTML = ''; myUsed = 0;
+        Object.keys(all).forEach(k => {
+            const u = all[k];
+            if(u.reseller_id === currentReseller) {
+                myUsed++;
+                tbody.innerHTML += `<tr><td><b>${u.username}</b></td><td><small>${u.password}</small></td><td>${u.note||''}</td><td><span style="color:var(--primary)">${u.status}</span></td><td>${u.device_id?'LOCKED':'WAITING'}</td></tr>`;
+            }
+        });
+        document.getElementById('stat-limit').innerText = 'Limit: ' + myLimit;
+        document.getElementById('stat-used').innerText = 'Used: ' + myUsed;
+        const avail = myLimit - myUsed;
+        document.getElementById('stat-avail').innerText = avail;
+        document.querySelector('.countdown-card').style.setProperty('--progress', (avail/myLimit*100)+'%');
+    });
+}
+
+function openAddModal() { if(myUsed >= myLimit) return alert("Allocation Exhausted!"); document.getElementById('addModal').classList.add('active'); }
+function closeModal() { document.getElementById('addModal').classList.remove('active'); }
+
+function saveUser() {
+    const u = document.getElementById('new-user').value.trim(), p = document.getElementById('new-pass').value.trim(), n = document.getElementById('new-note').value.trim();
+    if(!u || !p) return;
+    const expiry = Date.now() + (selectedDur * 24 * 60 * 60 * 1000);
+    db.ref('users').push({ username: u, password: p, note: n, status: 'ON', expiry_timestamp: expiry, reseller_id: currentReseller, device_id: '' }).then(() => { closeModal(); alert("License Issued!"); });
+}
+</script>
+</body>
+</html>
